@@ -1,0 +1,16 @@
+# Cache do HuggingFace (modelo medium ~1.5GB, baixado em runtime)
+/data/legendagem/models/
+
+# Builds locais
+*.bak
+*.bak-*
+__pycache__/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log

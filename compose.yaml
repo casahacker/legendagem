@@ -1,0 +1,27 @@
+services:
+  legendagem:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: localhost/legendagem:latest
+    container_name: legendagem
+    restart: on-failure:3
+    volumes:
+      - /data/legendagem/models:/app/models:z
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    ports:
+      - "127.0.0.1:18092:8000"
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.89.12.0/24

@@ -1,0 +1,23 @@
+[Unit]
+Description=Legendagem ao Vivo (WhisperLiveKit) — Casa Hacker RHEL
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/data/apps/legendagem
+# Remove container, podman network, and any stale kernel bridge for 10.89.12.0/24
+ExecStartPre=-/usr/bin/podman rm -f legendagem
+ExecStartPre=-/usr/bin/podman network rm -f legendagem_default
+ExecStartPre=-/bin/bash -c "iface=$(ip -4 addr show | grep -B2 '10\\.89\\.12\\.' | grep -oP '\\d+: \\K[^:@]+' | head -1); [ -n \"$iface\" ] && ip link del \"$iface\" 2>/dev/null || true"
+ExecStart=/usr/bin/podman-compose up -d
+ExecStop=/usr/bin/podman-compose down
+TimeoutStartSec=300
+
+PrivateTmp=true
+LockPersonality=true
+RestrictRealtime=true
+
+[Install]
+WantedBy=multi-user.target

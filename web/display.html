@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>Casa Hacker Legendagem</title>
+<style>
+  /* ============================================================================
+     Casa Hacker Legendagem · standalone display
+     Forked tokens of Casa Hacker Design System v1.0 (Carbon-based)
+     ============================================================================ */
+
+  /* fontes self-hosted */
+  @font-face {
+    font-family: 'Roboto Flex';
+    src: url('./fonts/RobotoFlex-Variable.woff2') format('woff2-variations'),
+         url('./fonts/RobotoFlex-Variable.woff2') format('woff2');
+    font-weight: 100 1000;
+    font-stretch: 25% 151%;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'IBM Plex Mono';
+    src: url('./fonts/IBMPlexMono-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-display: swap;
+  }
+
+  /* tokens base · brand */
+  :root {
+    --ch-code:        #32FA96;
+    --ch-code-hover:  #2BE085;
+    --ch-code-active: #24C775;
+    --ch-dos:         #3C433C;
+    --ch-dos-hover:   #4A524A;
+    --ch-java:        #91938C;
+    --ch-inspect:     #D7DCD7;
+    --ch-console:     #F0F5F0;
+    --ch-css:         #F8FCF8;
+    --ch-script:      #D79B2E;
+    --error:          #DA1E28;
+
+    --font-display: 'Roboto Flex', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --font-mono:    'IBM Plex Mono', ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+
+    /* multiplicador global aplicado nas captions */
+    --font-scale: 1;
+  }
+
+  /* tema escuro (default) · palco para eventos noturnos / teatro */
+  html[data-theme="dark"] {
+    --stage-bg:        #000000;
+    --stage-fg:        var(--ch-css);
+    --stage-buffer:    var(--ch-java);
+    --stage-accent:    var(--ch-code);
+    --stage-hint:      #2f352f;
+    --chrome-bg:       rgba(15, 17, 15, 0.85);
+    --chrome-border:   rgba(248, 252, 248, 0.08);
+    --chrome-field-bg: #0E120E;
+    --chrome-field-bd: #2A302A;
+    --chrome-field-hover: #161B16;
+    --logo-fg:         var(--ch-css);
+    --label-fg:        var(--ch-java);
+  }
+
+  /* tema claro · ambientes diurnos / palestras com projeção em LED */
+  html[data-theme="light"] {
+    --stage-bg:        var(--ch-css);
+    --stage-fg:        var(--ch-dos);
+    --stage-buffer:    var(--ch-java);
+    --stage-accent:    var(--ch-code-active);
+    --stage-hint:      #C5CCC5;
+    --chrome-bg:       rgba(248, 252, 248, 0.88);
+    --chrome-border:   rgba(60, 67, 60, 0.10);
+    --chrome-field-bg: #FFFFFF;
+    --chrome-field-bd: var(--ch-inspect);
+    --chrome-field-hover: var(--ch-console);
+    --logo-fg:         var(--ch-dos);
+    --label-fg:        var(--ch-java);
+  }
+
+  *,*::before,*::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--stage-bg);
+    color: var(--stage-fg);
+    font-family: var(--font-display);
+    font-variation-settings: "wdth" 100, "opsz" 30;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    transition: background-color .2s ease, color .2s ease;
+  }
+
+  /* ---------- Stage (área principal de exibição) ---------- */
+  #stage {
+    position: absolute; inset: 0 0 88px 0;        /* deixa espaço pro footer */
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 4vh 5vw;
+    text-align: center;
+    pointer-events: none;
+  }
+  .caption {
+    margin: 0.5vh 0;
+    line-height: 1.22;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    text-wrap: balance;
+    word-break: break-word;
+    font-variation-settings: "wdth" 100, "opsz" 144;
+    transition: opacity .25s ease, font-size .15s ease;
+  }
+  .caption:empty { display: none; }
+  .caption.finalized       { color: var(--stage-fg);     font-size: calc(clamp(4vw, 5.8vw, 8vw) * var(--font-scale)); }
+  .caption.finalized.prev  { color: var(--stage-fg); opacity: .55;
+                             font-size: calc(clamp(3.2vw, 4.6vw, 6.4vw) * var(--font-scale)); }
+  .caption.buffer          { color: var(--stage-buffer); font-weight: 400;
+                             font-size: calc(clamp(3.5vw, 5vw, 7vw) * var(--font-scale)); }
+
+  /* ---------- Hint de onboarding ---------- */
+  #hint {
+    position: absolute; inset: 0 0 88px 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--stage-hint);
+    text-align: center;
+    padding: 0 8vw; gap: 1.2vh;
+    pointer-events: none;
+  }
+  body.streaming #hint { display: none; }
+  #hint .h1 {
+    font-size: clamp(3vw, 4vw, 5.5vw);
+    font-weight: 500;
+    color: var(--label-fg);
+  }
+  #hint .h2 {
+    font-size: clamp(1.4vw, 1.7vw, 2.1vw);
+    color: var(--stage-hint);
+    font-family: var(--font-mono);
+  }
+  #hint .accent { color: var(--stage-accent); }
+
+  /* ---------- Footer (chrome agora vai no rodapé) ---------- */
+  #footer {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    height: 64px;
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 18px;
+    background: var(--chrome-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid var(--chrome-border);
+    z-index: 10;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    transition: transform .35s ease, opacity .35s ease, background-color .2s, border-color .2s;
+  }
+  body.fs #footer { transform: translateY(100%); opacity: 0; pointer-events: none; }
+  body.fs:hover #footer,
+  body.fs:focus-within #footer { transform: translateY(0); opacity: 1; pointer-events: auto; }
+
+  .brand {
+    display: inline-flex; align-items: center; gap: 12px;
+    color: var(--logo-fg);
+    user-select: none;
+  }
+  .brand .mark {
+    display: inline-flex;
+    width: 28px; height: 28px;
+    color: var(--logo-fg);
+  }
+  .brand .mark svg { width: 100%; height: 100%; }
+  .brand .wordmark {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .brand .wordmark .dim { color: var(--label-fg); font-weight: 400; }
+
+  .grow { flex: 1; }
+
+  /* ---------- Controles do footer ---------- */
+  .ctrl {
+    display: inline-flex; align-items: center;
+    gap: 8px;
+  }
+  .ctrl .group {
+    display: inline-flex;
+    border: 1px solid var(--chrome-field-bd);
+    background: var(--chrome-field-bg);
+  }
+  .ctrl .group .btn { border: 0; }
+  .ctrl .group .btn + .btn { border-left: 1px solid var(--chrome-field-bd); }
+
+  .btn, .field {
+    font: inherit;
+    background: var(--chrome-field-bg);
+    color: var(--stage-fg);
+    border: 1px solid var(--chrome-field-bd);
+    padding: 7px 12px;
+    border-radius: 0;
+    outline: none;
+    cursor: pointer;
+    transition: background-color .15s, border-color .15s, color .15s;
+    font-family: var(--font-mono);
+    font-size: 13px;
+  }
+  .btn { min-width: 38px; }
+  .btn:hover { background: var(--chrome-field-hover); border-color: var(--ch-java); }
+  .btn:focus-visible { box-shadow: 0 0 0 2px var(--stage-accent); }
+  .btn[aria-pressed="true"] { border-color: var(--stage-accent); color: var(--stage-accent); }
+  .btn--primary {
+    background: var(--stage-accent);
+    color: var(--ch-dos);
+    border-color: var(--stage-accent);
+    font-weight: 600;
+    padding-inline: 18px;
+  }
+  .btn--primary:hover { background: var(--ch-code-hover); border-color: var(--ch-code-hover); }
+  .btn--primary:active { background: var(--ch-code-active); border-color: var(--ch-code-active); }
+  .btn--primary[disabled] { opacity: .5; cursor: not-allowed; }
+
+  /* ---------- Status indicator ---------- */
+  #status {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--chrome-field-bd);
+    color: var(--label-fg);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  #status .dot {
+    width: 8px; height: 8px;
+    background: var(--label-fg);
+    transition: all .2s;
+  }
+  #status.connecting { color: var(--ch-script); border-color: var(--ch-script); }
+  #status.connecting .dot { background: var(--ch-script); box-shadow: 0 0 8px var(--ch-script); animation: pulse 1s infinite; }
+  #status.connected { color: var(--stage-accent); border-color: var(--stage-accent); }
+  #status.connected .dot { background: var(--stage-accent); box-shadow: 0 0 10px var(--stage-accent); }
+  #status.error { color: var(--error); border-color: var(--error); }
+  #status.error .dot { background: var(--error); box-shadow: 0 0 8px var(--error); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* ---------- Config (escondida — só revelada via Ctrl+Shift+S ou ?config=1) ---------- */
+  #server-config {
+    display: none;
+    align-items: center; gap: 8px;
+  }
+  body.show-config #server-config { display: inline-flex; }
+  #server-config .field { min-width: 320px; }
+
+  /* responsivo · em telas estreitas, esconde wordmark longo */
+  @media (max-width: 720px) {
+    .brand .wordmark .casa,
+    .brand .wordmark .sep { display: none; }
+    #footer { gap: 8px; padding: 0 10px; }
+    .btn { padding-inline: 10px; }
+  }
+
+  /* acessibilidade */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  }
+  ::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+
+<!-- ============ STAGE (legendas) ============ -->
+<main id="stage" aria-live="polite" aria-atomic="false">
+  <div id="line-prev"   class="caption finalized prev"></div>
+  <div id="line-curr"   class="caption finalized"></div>
+  <div id="line-buffer" class="caption buffer"></div>
+</main>
+
+<!-- ============ HINT (estado inicial) ============ -->
+<div id="hint" aria-hidden="true">
+  <div class="h1">Casa Hacker <span class="accent">Legendagem</span></div>
+  <div class="h2">Clique em <span class="accent">Conectar</span> abaixo.<br>É necessário permitir acesso ao microfone deste dispositivo.</div>
+</div>
+
+<!-- ============ FOOTER (chrome) ============ -->
+<footer id="footer">
+  <span class="brand" aria-label="Casa Hacker Legendagem">
+    <span class="mark" aria-hidden="true">
+      <!-- H-symbol oficial do Casa Hacker DS (forma "H" pixelado, currentColor controla tema) -->
+      <svg viewBox="0 0 73.44 73.44" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+        <polygon points="48.96 0 48.96 24.48 24.48 24.48 24.48 48.96 48.96 48.96 48.96 73.44 73.44 73.44 73.44 48.96 73.44 24.48 73.44 0 48.96 0"/>
+        <rect y="48.96" width="24.48" height="24.48"/>
+        <rect width="24.48" height="24.48"/>
+      </svg>
+    </span>
+    <span class="wordmark"><span class="casa">Casa Hacker</span> <span class="sep dim">·</span> Legendagem</span>
+  </span>
+
+  <!-- bloco escondido (revelar com Ctrl+Shift+S) -->
+  <span id="server-config" aria-hidden="true">
+    <label for="server" class="dim">servidor:</label>
+    <input id="server" class="field" type="text" autocomplete="off" spellcheck="false"
+           placeholder="wss://host/asr  ou  ip:porta" />
+  </span>
+
+  <span class="grow"></span>
+
+  <span class="ctrl">
+    <!-- font size group -->
+    <span class="group" role="group" aria-label="Tamanho do texto">
+      <button class="btn" id="btn-font-down" title="Diminuir texto (-)" aria-label="Diminuir texto">A-</button>
+      <button class="btn" id="btn-font-up"   title="Aumentar texto (+)" aria-label="Aumentar texto">A+</button>
+    </span>
+    <!-- theme -->
+    <button class="btn" id="btn-theme" title="Alternar tema claro/escuro (T)" aria-label="Alternar tema">
+      <span id="theme-icon">☾</span>
+    </button>
+    <!-- fullscreen -->
+    <button class="btn" id="btn-fullscreen" title="Tela cheia (F)" aria-label="Tela cheia">⛶</button>
+    <!-- connect -->
+    <button class="btn btn--primary" id="btn-connect">Conectar</button>
+  </span>
+
+  <span id="status" role="status" aria-live="polite">
+    <span class="dot" aria-hidden="true"></span>
+    <span id="status-text">desconectado</span>
+  </span>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  const $ = (id) => document.getElementById(id);
+  const $server      = $("server");
+  const $btnConnect  = $("btn-connect");
+  const $btnFs       = $("btn-fullscreen");
+  const $btnTheme    = $("btn-theme");
+  const $themeIcon   = $("theme-icon");
+  const $btnFontUp   = $("btn-font-up");
+  const $btnFontDown = $("btn-font-down");
+  const $status      = $("status");
+  const $statusText  = $("status-text");
+  const $linePrev    = $("line-prev");
+  const $lineCurr    = $("line-curr");
+  const $lineBuf     = $("line-buffer");
+
+  /* ----- Estado persistido em localStorage ----- */
+  const LS = {
+    server:    "legendagem.server",
+    theme:     "legendagem.theme",
+    fontScale: "legendagem.fontScale",
+  };
+
+  /* ----- Servidor (config escondida; auto-detectado) ----- */
+  const params = new URLSearchParams(location.search);
+  if (params.get("config") === "1") document.body.classList.add("show-config");
+
+  const initialServer =
+       params.get("server")
+    || localStorage.getItem(LS.server)
+    || (location.protocol === "https:" && location.hostname
+          ? "wss://" + location.host + "/asr"
+          : "");
+  $server.value = initialServer;
+
+  /* ----- Tema ----- */
+  function applyTheme(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    localStorage.setItem(LS.theme, t);
+    $themeIcon.textContent = t === "dark" ? "☾" : "☀";
+    $btnTheme.setAttribute("aria-pressed", t === "light" ? "true" : "false");
+  }
+  applyTheme(localStorage.getItem(LS.theme) || "dark");
+
+  /* ----- Font scale ----- */
+  let fontScale = parseFloat(localStorage.getItem(LS.fontScale)) || 1;
+  fontScale = Math.max(0.6, Math.min(1.8, fontScale));
+  function applyFontScale() {
+    document.documentElement.style.setProperty("--font-scale", String(fontScale));
+    localStorage.setItem(LS.fontScale, String(fontScale));
+  }
+  applyFontScale();
+
+  /* ----- WebSocket / mic ----- */
+  let ws = null, mediaRecorder = null, mediaStream = null;
+
+  function setStatus(state, text) {
+    $status.className = state;
+    $statusText.textContent = text;
+  }
+
+  function buildWsUrl(input) {
+    input = (input || "").trim();
+    if (!input) throw new Error("servidor não definido");
+    if (/^wss?:\/\//i.test(input)) return input;
+    if (/:\d+/.test(input))        return "ws://" + input + "/asr";
+    return "ws://" + input + ":8000/asr";
+  }
+
+  function tearDown() {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      try { mediaRecorder.stop(); } catch (_) {}
+    }
+    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+    if (ws) { try { ws.close(); } catch (_) {} ws = null; }
+    document.body.classList.remove("streaming");
+    $btnConnect.textContent = "Conectar";
+    $btnConnect.disabled = false;
+  }
+
+  async function connect() {
+    tearDown();
+    let url;
+    try { url = buildWsUrl($server.value); }
+    catch (e) { setStatus("error", e.message); return; }
+
+    localStorage.setItem(LS.server, $server.value.trim());
+    setStatus("connecting", "conectando…");
+    $btnConnect.disabled = true;
+
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
+    } catch (err) {
+      setStatus("error", "microfone negado");
+      $btnConnect.disabled = false;
+      console.error(err);
+      return;
+    }
+
+    try { ws = new WebSocket(url); }
+    catch (err) { setStatus("error", "URL inválida"); $btnConnect.disabled = false; return; }
+    ws.binaryType = "arraybuffer";
+
+    ws.onopen = () => {
+      setStatus("connected", "ao vivo");
+      document.body.classList.add("streaming");
+      startRecorder();
+      $btnConnect.disabled = false;
+      $btnConnect.textContent = "Desconectar";
+    };
+    ws.onmessage = (ev) => {
+      let msg; try { msg = JSON.parse(ev.data); } catch (_) { return; }
+      handleMessage(msg);
+    };
+    ws.onerror = () => setStatus("error", "erro de conexão");
+    ws.onclose = () => { setStatus("error", "desconectado"); tearDown(); };
+  }
+
+  function startRecorder() {
+    const mimes = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"];
+    const mime  = mimes.find(m => MediaRecorder.isTypeSupported(m)) || "";
+    try {
+      mediaRecorder = new MediaRecorder(mediaStream, mime ? { mimeType: mime, audioBitsPerSecond: 64000 } : {});
+    } catch (e) { setStatus("error", "MediaRecorder indisponível"); return; }
+    mediaRecorder.ondataavailable = async (e) => {
+      if (e.data && e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
+        const buf = await e.data.arrayBuffer();
+        ws.send(buf);
+      }
+    };
+    mediaRecorder.start(250);
+  }
+
+  function handleMessage(msg) {
+    if (!msg || msg.type === "config") return;       // mensagem inicial do servidor
+    const lines = Array.isArray(msg.lines)
+      ? msg.lines.map(l => (l && (l.text || l.transcript)) || "").filter(Boolean)
+      : [];
+    const buf =
+         (typeof msg.buffer_transcription === "string" && msg.buffer_transcription)
+      || (typeof msg.buffer === "string" && msg.buffer)
+      || "";
+    const last2 = lines.slice(-2);
+    $linePrev.textContent = last2.length === 2 ? last2[0] : "";
+    $lineCurr.textContent = last2.length >= 1 ? last2[last2.length - 1] : "";
+    $lineBuf.textContent  = (buf || "").trim();
+  }
+
+  /* ----- Fullscreen ----- */
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+    else document.exitFullscreen().catch(()=>{});
+  }
+  document.addEventListener("fullscreenchange", () => {
+    document.body.classList.toggle("fs", !!document.fullscreenElement);
+  });
+
+  /* ----- Listeners ----- */
+  $btnConnect.addEventListener("click", () => {
+    if (ws && ws.readyState === WebSocket.OPEN) tearDown();
+    else connect();
+  });
+  $btnFs.addEventListener("click", toggleFullscreen);
+  $btnTheme.addEventListener("click", () => {
+    const cur = document.documentElement.getAttribute("data-theme");
+    applyTheme(cur === "dark" ? "light" : "dark");
+  });
+  $btnFontUp.addEventListener("click", () => {
+    fontScale = Math.min(1.8, +(fontScale + 0.1).toFixed(2)); applyFontScale();
+  });
+  $btnFontDown.addEventListener("click", () => {
+    fontScale = Math.max(0.6, +(fontScale - 0.1).toFixed(2)); applyFontScale();
+  });
+
+  /* atalhos de teclado · não interfere com inputs */
+  document.addEventListener("keydown", (e) => {
+    if (e.target === $server) return;
+    const k = e.key.toLowerCase();
+    if (k === "f") toggleFullscreen();
+    else if (k === "t") $btnTheme.click();
+    else if (k === "+" || (e.key === "=" && e.shiftKey === false)) $btnFontUp.click();
+    else if (k === "-") $btnFontDown.click();
+    else if (e.ctrlKey && e.shiftKey && k === "s") {
+      e.preventDefault();
+      document.body.classList.toggle("show-config");
+    }
+    else if (e.key === "Escape" && document.fullscreenElement) document.exitFullscreen();
+  });
+
+  setStatus("", "desconectado");
+})();
+</script>
+</body>
+</html>
