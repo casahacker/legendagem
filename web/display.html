@@ -91,19 +91,25 @@
      Texto alinhado à esquerda. Novas linhas entram por baixo com slide+fade.
      Linha mais recente recebe marcador verde (--ch-code) varrendo da esquerda. */
   #stage {
-    position: absolute; inset: 0 0 88px 0;
-    display: flex; flex-direction: column;
-    justify-content: flex-end;
+    position: absolute; inset: 0 0 112px 0;     /* 112px = footer (64) + soundwave (48) */
     padding: 6vh 6vw 3vh;
     pointer-events: none;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    /* máscara só no topo — linhas que saem desbotam suavemente */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 100%);
+            mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 100%);
+  }
+  /* Mantém content no fim do scroll quando há espaço sobrando */
+  #stage-inner {
+    min-height: 100%;
+    display: flex; flex-direction: column;
+    justify-content: flex-end;
   }
   #lines {
     display: flex; flex-direction: column;
     gap: 1.5vh;
-    /* máscara: linhas no topo somem suavemente */
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 18%, #000 100%);
-            mask-image: linear-gradient(to bottom, transparent 0%, #000 18%, #000 100%);
   }
   .line {
     text-align: left;
@@ -117,6 +123,30 @@
     margin: 0;
     position: relative;
     transform-origin: left bottom;
+  }
+  /* Gradient text: tons sutis brand-aware, gradiente vertical de fg → accent */
+  .line {
+    background: linear-gradient(180deg,
+        var(--stage-fg) 0%,
+        var(--stage-fg) 55%,
+        color-mix(in srgb, var(--stage-fg) 70%, var(--stage-accent) 30%) 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+            color: transparent;
+  }
+  /* Linha atual tem gradient mais intenso pra destacar */
+  .line.current {
+    background: linear-gradient(180deg,
+        var(--stage-fg) 0%,
+        color-mix(in srgb, var(--stage-fg) 85%, var(--stage-accent) 15%) 55%,
+        var(--stage-accent) 100%);
+    -webkit-background-clip: text;
+            background-clip: text;
+    -webkit-text-fill-color: transparent;
+            color: transparent;
+    /* drop-shadow no lugar de text-shadow porque cor é transparente */
+    filter: drop-shadow(0 0 12px rgba(50, 250, 150, 0.18));
   }
   /* ---------- Animações de entrada/saída ---------- */
   .line.enter {
@@ -156,11 +186,6 @@
     100% { transform: scaleX(1); opacity: .35; }
   }
 
-  /* Halo sutil só na linha recente */
-  .line.current {
-    text-shadow: 0 0 24px rgba(50, 250, 150, 0.08);
-  }
-
   /* ---------- Buffer (texto em construção, com cursor piscante) ---------- */
   #buffer {
     text-align: left;
@@ -192,20 +217,105 @@
     50% { opacity: 0; }
   }
 
-  /* ---------- Hint inicial ---------- */
+  /* ---------- Hint inicial (logo + instruções de mic) ---------- */
   #hint {
-    position: absolute; inset: 0 0 88px 0;
+    position: absolute; inset: 0 0 112px 0;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     color: var(--stage-hint);
     text-align: center;
-    padding: 0 8vw; gap: 1.2vh;
+    padding: 4vh 8vw; gap: 3vh;
     pointer-events: none;
   }
   body.streaming #hint { display: none; }
-  #hint .h1 { font-size: clamp(3vw, 4vw, 5.5vw); font-weight: 500; color: var(--label-fg); }
-  #hint .h2 { font-size: clamp(1.4vw, 1.7vw, 2.1vw); color: var(--stage-hint); font-family: var(--font-mono); }
+  #hint .brand-logo {
+    color: var(--logo-fg);
+    width: min(48vw, 720px);
+    height: auto;
+    opacity: 0.95;
+  }
+  #hint .brand-logo svg { width: 100%; height: auto; display: block; }
+  #hint .tagline {
+    font-family: var(--font-mono);
+    font-size: clamp(0.95vw, 1.15vw, 1.4vw);
+    font-weight: 500;
+    color: var(--label-fg);
+    text-transform: uppercase;
+    letter-spacing: 0.32em;
+    margin-top: -2vh;
+  }
   #hint .accent { color: var(--stage-accent); }
+  #hint .steps {
+    display: flex; flex-direction: column; gap: 1vh;
+    font-family: var(--font-mono);
+    font-size: clamp(1.1vw, 1.35vw, 1.7vw);
+    color: var(--label-fg);
+    line-height: 1.5;
+    max-width: 760px;
+  }
+  #hint .steps .step {
+    display: flex; align-items: flex-start; gap: 14px;
+    text-align: left;
+  }
+  #hint .steps .num {
+    flex: 0 0 auto;
+    width: 1.7em; height: 1.7em;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--stage-accent);
+    color: var(--ch-dos);
+    font-weight: 600;
+    border-radius: 50%;
+    font-size: 0.85em;
+  }
+  #hint .steps strong { color: var(--stage-fg); font-weight: 500; }
+  #hint .cta {
+    margin-top: 1vh;
+    font-family: var(--font-mono);
+    font-size: clamp(1vw, 1.2vw, 1.5vw);
+    color: var(--stage-hint);
+  }
+  #hint .cta kbd {
+    background: var(--chrome-field-bg);
+    border: 1px solid var(--chrome-field-bd);
+    padding: 2px 8px;
+    border-radius: 3px;
+    color: var(--stage-accent);
+    font-family: inherit;
+    font-size: 0.9em;
+  }
+
+  /* ---------- Soundwave / equalizer ---------- */
+  #wave {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: 64px;
+    height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 3px;
+    padding: 0 4vw;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .35s ease;
+    z-index: 5;
+    /* máscara nas pontas pra fade lateral */
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+  }
+  body.streaming #wave { opacity: 1; }
+  #wave .bar {
+    flex: 1 1 0;
+    max-width: 5px;
+    height: 100%;
+    background: linear-gradient(to top,
+        var(--stage-accent) 0%,
+        color-mix(in srgb, var(--stage-accent) 70%, transparent) 60%,
+        rgba(50, 250, 150, 0.18) 100%);
+    border-radius: 2px;
+    transform: scaleY(0.06);
+    transform-origin: center;
+    transition: transform 70ms ease-out;
+    will-change: transform;
+  }
 
   /* ---------- Footer ---------- */
   #footer {
@@ -348,14 +458,53 @@
 </div>
 
 <main id="stage" aria-live="polite" aria-atomic="false">
-  <div id="lines"></div>
-  <div id="buffer"></div>
+  <div id="stage-inner">
+    <div id="lines"></div>
+    <div id="buffer"></div>
+  </div>
 </main>
 
 <div id="hint" aria-hidden="true">
-  <div class="h1">Casa Hacker <span class="accent">Legendagem</span></div>
-  <div class="h2">Clique em <span class="accent">Iniciar</span>. Vai pedir acesso ao microfone.</div>
+  <span class="brand-logo" aria-label="Casa Hacker">
+    <svg viewBox="0 0 589.57 54.53" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+      <polygon points="571.41 0 553.25 0 553.25 10.37 553.25 18.16 553.25 18.16 553.25 36.32 553.25 54.48 571.41 54.48 571.41 36.32 571.41 18.16 571.41 18.16 589.57 18.16 589.57 0 571.41 0"/>
+      <polygon points="451.03 54.48 451.03 36.32 469.19 36.32 469.19 18.16 451.03 18.16 451.03 0 432.88 0 432.88 18.16 432.88 36.32 432.88 54.48 451.03 54.48"/>
+      <rect x="469.19" y="0" width="18.16" height="18.16"/>
+      <rect x="469.19" y="36.32" width="18.16" height="18.16"/>
+      <polygon points="286.78 0 286.78 18.16 268.62 18.16 268.62 36.32 286.78 36.32 286.78 54.48 304.94 54.48 304.94 36.32 304.94 18.16 304.94 0 286.78 0"/>
+      <rect x="250.46" y="36.32" width="18.16" height="18.16"/>
+      <rect x="250.46" y="0" width="18.16" height="18.16"/>
+      <path d="M20.69,35.96c-1.4-2.01-2.11-4.96-2.11-8.77s.71-6.74,2.11-8.72c1.42-2.01,3.38-3.03,5.82-3.03,3.37,0,5.69,1.77,6.9,5.26h19.37c-1.35-6.45-4.32-11.54-8.82-15.16C39.37,1.87,33.63,0,26.9,0,21.67,0,16.97,1.12,12.92,3.32c-4.02,2.17-7.32,5.45-9.51,9.46C1.15,16.87,0,21.72,0,27.19s1.14,10.42,3.41,14.51c2.19,4.01,5.49,7.29,9.51,9.46,4.05,2.2,8.76,3.32,13.98,3.32,6.73,0,12.47-1.88,17.05-5.58,4.51-3.64,7.48-8.73,8.82-15.11h-19.36c-1.14,3.49-3.46,5.26-6.9,5.26-2.45,0-4.41-1.04-5.83-3.08Z"/>
+      <path d="M394.73,35.96c-1.4-2.01-2.11-4.96-2.11-8.77s.71-6.74,2.11-8.72c1.42-2.01,3.38-3.03,5.82-3.03,3.37,0,5.69,1.77,6.9,5.26h19.37c-1.35-6.45-4.32-11.54-8.82-15.16C413.41,1.87,407.68,0,400.95,0c-5.23,0-9.93,1.12-13.98,3.32-4.02,2.17-7.32,5.45-9.51,9.46-2.26,4.08-3.41,8.93-3.41,14.41s1.14,10.42,3.41,14.51c2.19,4.01,5.49,7.29,9.51,9.46,4.05,2.2,8.76,3.32,13.98,3.32,6.73,0,12.47-1.88,17.05-5.58,4.51-3.64,7.48-8.73,8.82-15.11h-19.37c-1.14,3.49-3.46,5.26-6.9,5.26-2.44,0-4.4-1.04-5.82-3.08Z"/>
+      <path d="M159.72,24.39c-2.56-1.01-5.81-1.94-9.67-2.76-3.26-.7-5.66-1.4-7.14-2.08-1.57-.71-2.36-1.78-2.36-3.17-.04-1.04.46-2.02,1.31-2.61.84-.61,2.07-.91,3.65-.91,2.03,0,3.68.49,4.9,1.45,1.18.92,1.95,2.24,2.31,3.92h16.4c-.68-5.38-2.98-9.79-6.86-13.1C158.31,1.73,152.8.01,145.88.01c-4.66,0-8.69.76-11.99,2.27-3.3,1.51-5.81,3.55-7.49,6.07-1.68,2.52-2.57,5.48-2.54,8.51,0,3.62.93,6.52,2.75,8.62,1.76,2.06,4,3.65,6.54,4.61,2.52.95,5.73,1.81,9.53,2.57,3.38.77,5.84,1.48,7.33,2.12,1.57.68,2.37,1.77,2.37,3.22,0,1.11-.49,2.02-1.46,2.71-.94.67-2.21,1.01-3.8,1.01-2.03,0-3.76-.5-5.14-1.49-1.32-.93-2.21-2.37-2.47-3.97h-17.65c.28,3.34,1.53,6.53,3.6,9.17,2.16,2.79,5.15,5.01,8.89,6.61,3.74,1.6,8.07,2.42,12.86,2.42,4.47,0,8.41-.72,11.71-2.12,3.3-1.41,5.86-3.36,7.64-5.8,1.76-2.39,2.7-5.29,2.67-8.26,0-3.8-.96-6.85-2.85-9.06s-4.14-3.87-6.67-4.87Z"/>
+      <path d="M367.85,0h-18.21v8.87l-.51-.87c-1.44-2.43-3.49-4.39-6.12-5.83C340.4.74,337.22,0,333.58,0c-4.2,0-8.06,1.11-11.48,3.31s-6.15,5.38-8.13,9.46h0c-1.98,4.08-2.99,8.94-2.99,14.43s1,10.35,2.99,14.47c1.98,4.12,4.71,7.31,8.13,9.5,3.42,2.19,7.28,3.31,11.48,3.31,3.57,0,6.73-.73,9.39-2.17,2.66-1.44,4.73-3.4,6.16-5.83l.51-.87v8.87h18.34V0h-.13ZM346.75,35.61c-1.93,2.03-4.33,3.05-7.14,3.05s-5.29-1.04-7.19-3.1-2.85-4.87-2.85-8.37.96-6.38,2.85-8.37c1.89-1.99,4.31-3,7.19-3s5.21,1.03,7.14,3.05h0c1.92,2.02,2.9,4.82,2.9,8.32,0,3.57-.98,6.4-2.9,8.42Z"/>
+      <path d="M232.17,0h-18.21v8.87l-.51-.87c-1.44-2.43-3.49-4.39-6.12-5.83C204.72.74,201.54,0,197.9,0c-4.2,0-8.06,1.11-11.48,3.31-3.42,2.19-6.15,5.38-8.13,9.46h0c-1.98,4.08-2.99,8.94-2.99,14.43s1,10.35,2.99,14.47c1.98,4.12,4.71,7.31,8.13,9.5,3.42,2.19,7.28,3.31,11.48,3.31,3.57,0,6.73-.73,9.39-2.17,2.66-1.44,4.73-3.4,6.16-5.83l.51-.87v8.92h18.34V0h-.13ZM211.07,35.61c-1.93,2.03-4.33,3.05-7.14,3.05s-5.29-1.04-7.19-3.1c-1.9-2.06-2.85-4.87-2.85-8.37s.96-6.38,2.85-8.37c1.89-1.99,4.31-3,7.19-3s5.21,1.03,7.14,3.05h0c1.92,2.02,2.9,4.82,2.9,8.32s-.98,6.4-2.9,8.42Z"/>
+      <path d="M115.7,0h-18.21v8.87l-.51-.87c-1.43-2.43-3.49-4.39-6.11-5.83C88.25.74,85.07,0,81.43,0c-4.2,0-8.06,1.11-11.48,3.31-3.41,2.19-6.15,5.38-8.13,9.46h0c-1.98,4.08-2.99,8.94-2.99,14.43s1,10.35,2.99,14.47,4.71,7.31,8.13,9.5c3.42,2.19,7.27,3.31,11.48,3.31,3.58,0,6.73-.73,9.39-2.17,2.66-1.44,4.73-3.4,6.16-5.83l.51-.87v8.87h18.34V0h-.13ZM94.6,35.61c-1.93,2.03-4.33,3.05-7.14,3.05s-5.29-1.04-7.19-3.1c-1.9-2.06-2.85-4.87-2.85-8.37s.96-6.38,2.85-8.37c1.89-1.99,4.31-3,7.19-3s5.21,1.03,7.14,3.05h0c1.92,2.02,2.9,4.82,2.9,8.32,0,3.57-.98,6.4-2.9,8.42Z"/>
+      <path d="M543.79,12.45c-2.2-3.92-5.48-7.13-9.46-9.23-4.03-2.14-8.72-3.22-13.94-3.22s-10.02,1.12-14.08,3.32c-4.01,2.16-7.31,5.43-9.51,9.41-2.27,4.05-3.41,8.92-3.41,14.46s1.16,10.42,3.46,14.5c2.21,4,5.53,7.29,9.56,9.46,4.05,2.2,8.76,3.32,13.98,3.32,4.34,0,8.36-.83,11.94-2.46,3.58-1.63,6.59-3.91,8.95-6.77,2.27-2.75,3.88-5.98,4.7-9.45h-19.48c-1.39,2.79-3.7,4.21-6.86,4.21-2.3,0-4.22-.75-5.7-2.23s-2.33-3.74-2.52-6.73l-.02-.29h35.55c.17-1.37.25-2.75.25-4.13,0-5.41-1.15-10.18-3.42-14.17ZM528.61,22.21h-17.16l.06-.33c.46-2.48,1.45-4.38,2.96-5.66s3.47-1.93,5.82-1.93,4.34.68,5.92,2.03c1.58,1.35,2.39,3.25,2.39,5.62v.28Z"/>
+    </svg>
+  </span>
+  <div class="tagline"><span class="accent">●</span> Legendagem ao vivo</div>
+
+  <div class="steps">
+    <div class="step">
+      <span class="num">1</span>
+      <span>Conecte um <strong>microfone Bluetooth</strong> ao laptop e entregue ao palestrante. Uma pessoa fala por vez.</span>
+    </div>
+    <div class="step">
+      <span class="num">2</span>
+      <span>Clique em <strong>Iniciar</strong> abaixo e <strong>autorize o acesso ao microfone</strong> quando o navegador pedir.</span>
+    </div>
+    <div class="step">
+      <span class="num">3</span>
+      <span>Projete em <strong>tela cheia</strong> (botão ⛶ ou tecla <kbd-mock>F</kbd-mock>) e ajuste o tamanho do texto com A− / A+.</span>
+    </div>
+  </div>
+
+  <div class="cta">Pronto? Tecla <kbd>Espaço</kbd> ou clique em <span class="accent">Iniciar</span>.</div>
 </div>
+
+<!-- Equalizer reativo ao áudio do mic. Visível enquanto streaming. -->
+<div id="wave" aria-hidden="true"></div>
 
 <footer id="footer">
   <span class="brand" aria-label="Casa Hacker Legendagem">
@@ -413,9 +562,21 @@
   const $btnFontDown = $("btn-font-down");
   const $status      = $("status");
   const $statusText  = $("status-text");
+  const $stage       = $("stage");
   const $lines       = $("lines");
   const $buffer      = $("buffer");
   const $vuFill      = $("vu-fill");
+  const $wave        = $("wave");
+
+  /* ----- Soundwave bars ----- */
+  const N_BARS = 56;
+  const waveBars = [];
+  for (let i = 0; i < N_BARS; i++) {
+    const b = document.createElement("span");
+    b.className = "bar";
+    $wave.appendChild(b);
+    waveBars.push(b);
+  }
 
   const LS = {
     theme:     "legendagem.theme",
@@ -453,8 +614,9 @@
     $statusText.textContent = text;
   }
 
-  /* ----- VU meter (Web Audio AnalyserNode) ----- */
+  /* ----- VU meter + Soundwave (Web Audio AnalyserNode) ----- */
   let audioCtx = null, vuRaf = null, vuStream = null;
+
   async function startVuMeter() {
     try {
       vuStream = await navigator.mediaDevices.getUserMedia({
@@ -462,29 +624,55 @@
       });
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const src = audioCtx.createMediaStreamSource(vuStream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 256;
-      src.connect(analyser);
-      const data = new Uint8Array(analyser.frequencyBinCount);
+      // dois analyser pra usos distintos: VU (RMS) e wave (FFT)
+      const vuAnalyser = audioCtx.createAnalyser();
+      vuAnalyser.fftSize = 256;
+      src.connect(vuAnalyser);
+      const fftAnalyser = audioCtx.createAnalyser();
+      fftAnalyser.fftSize = 512;       // 256 bins; usamos os 64 mais baixos (voz)
+      fftAnalyser.smoothingTimeConstant = 0.72;
+      src.connect(fftAnalyser);
+
+      const timeData = new Uint8Array(vuAnalyser.frequencyBinCount);
+      const freqData = new Uint8Array(fftAnalyser.frequencyBinCount);
+
       const tick = () => {
-        analyser.getByteTimeDomainData(data);
+        // ---- VU (RMS) ----
+        vuAnalyser.getByteTimeDomainData(timeData);
         let sum = 0;
-        for (let i = 0; i < data.length; i++) {
-          const v = (data[i] - 128) / 128;
+        for (let i = 0; i < timeData.length; i++) {
+          const v = (timeData[i] - 128) / 128;
           sum += v * v;
         }
-        const rms = Math.sqrt(sum / data.length);
+        const rms = Math.sqrt(sum / timeData.length);
         $vuFill.style.width = Math.min(100, Math.round(rms * 250)) + "%";
+
+        // ---- Soundwave (FFT) ----
+        fftAnalyser.getByteFrequencyData(freqData);
+        // Pega bins 2..130 (faixa de voz humana ~80Hz-5kHz @ 48kHz sample) e bina em N_BARS
+        const startBin = 2, endBin = 130;
+        const span = endBin - startBin;
+        for (let i = 0; i < N_BARS; i++) {
+          const b0 = startBin + Math.floor(i * span / N_BARS);
+          const b1 = startBin + Math.floor((i + 1) * span / N_BARS);
+          let max = 0;
+          for (let k = b0; k < b1; k++) if (freqData[k] > max) max = freqData[k];
+          // normaliza 0..1 com piso pra evitar barras "mortas" (estética)
+          const norm = Math.max(0.04, Math.min(1, max / 200));
+          waveBars[i].style.transform = `scaleY(${norm})`;
+        }
+
         vuRaf = requestAnimationFrame(tick);
       };
       tick();
-    } catch (e) { console.warn("VU falhou (sem permissão de mic):", e); }
+    } catch (e) { console.warn("VU/wave falhou (sem permissão de mic):", e); }
   }
   function stopVuMeter() {
     if (vuRaf) cancelAnimationFrame(vuRaf);
     if (audioCtx) { try { audioCtx.close(); } catch (_) {} audioCtx = null; }
     if (vuStream) { vuStream.getTracks().forEach(t => t.stop()); vuStream = null; }
     $vuFill.style.width = "0%";
+    waveBars.forEach(b => b.style.transform = "scaleY(0.06)");
   }
 
   /* ----- Web Speech API ----- */
@@ -497,9 +685,15 @@
   // Máximo de linhas finalizadas visíveis. Linhas mais antigas saem pelo topo.
   const MAX_LINES = 5;
 
+  function scrollToBottom() {
+    // Garante que conteúdo novo seja visível mesmo com frases longas que excedem viewport
+    requestAnimationFrame(() => {
+      $stage.scrollTop = $stage.scrollHeight;
+    });
+  }
+
   function pushLine(text) {
     if (!text) return;
-    // Remove "current" da linha anterior (mantém o marcador, mas para nova animação)
     const prev = $lines.querySelector(".line.current");
     if (prev) prev.classList.remove("current");
 
@@ -507,29 +701,28 @@
     el.className = "line current enter";
     el.textContent = text;
     $lines.appendChild(el);
+    scrollToBottom();
 
-    // Remove a classe 'enter' depois da animação para liberar o estado normal
     el.addEventListener("animationend", function once(ev) {
       if (ev.animationName === "line-enter") {
         el.classList.remove("enter");
         el.removeEventListener("animationend", once);
+        scrollToBottom();
       }
     });
 
-    // Mantém no máximo MAX_LINES linhas — anima saída das antigas pelo topo
     while ($lines.children.length > MAX_LINES) {
       const oldest = $lines.firstElementChild;
       oldest.classList.add("leave");
       oldest.addEventListener("animationend", () => oldest.remove(), { once: true });
-      // garantia: remove após 600ms caso animationend não dispare
       setTimeout(() => { if (oldest.parentNode) oldest.remove(); }, 600);
-      // Se ainda assim sobram crianças além do limite (durante leave), quebra
       if (oldest.classList.contains("leave")) break;
     }
   }
 
   function setBuffer(text) {
     $buffer.textContent = text || "";
+    scrollToBottom();
   }
 
   function clearAll() {
