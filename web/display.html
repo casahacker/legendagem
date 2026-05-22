@@ -124,38 +124,15 @@
     position: relative;
     transform-origin: left bottom;
   }
-  /* ---------- Gradient text envelhecendo pelo espectro Casa Hacker ----------
-     Cada posição no stack puxa o gradiente do texto para uma cor diferente da
-     paleta (recente=verde, 1 atrás=azul, 2=roxo, 3=pink, 4+=gray). Em ambos os
-     temas. Marker e glow continuam só na linha atual em verde. */
+  /* ---------- Texto sólido (sem gradient) ----------
+     A diferenciação por idade fica só na opacidade (já feita via :nth-last-child)
+     + cor sólida levemente tingida pra envelhecimento. O glow verde fica
+     exclusivo da linha atual pra atrair o foco. */
   .line {
-    --age-tint: var(--stage-fg);
-    --age-mix: 25%;     /* intensidade do tint no rodapé do glyph */
-    background: linear-gradient(180deg,
-        var(--stage-fg) 0%,
-        var(--stage-fg) 50%,
-        color-mix(in srgb, var(--stage-fg) calc(100% - var(--age-mix)), var(--age-tint) var(--age-mix)) 100%);
-    -webkit-background-clip: text;
-            background-clip: text;
-    -webkit-text-fill-color: transparent;
-            color: transparent;
+    color: var(--stage-fg);
   }
-
-  /* Dark theme: usa cores brilhantes */
-  html[data-theme="dark"] #lines .line:nth-last-child(1) { --age-tint: var(--ch-code);         --age-mix: 55%; }
-  html[data-theme="dark"] #lines .line:nth-last-child(2) { --age-tint: var(--ch-sec-b);        --age-mix: 32%; }
-  html[data-theme="dark"] #lines .line:nth-last-child(3) { --age-tint: var(--ch-purple-light); --age-mix: 28%; }
-  html[data-theme="dark"] #lines .line:nth-last-child(4) { --age-tint: var(--ch-sec-r);        --age-mix: 24%; }
-
-  /* Light theme: usa as cores -fg (mais escuras) pra preservar contraste em bg claro */
-  html[data-theme="light"] #lines .line:nth-last-child(1) { --age-tint: var(--ch-code-active); --age-mix: 60%; }
-  html[data-theme="light"] #lines .line:nth-last-child(2) { --age-tint: #0E3A6B;               --age-mix: 38%; }
-  html[data-theme="light"] #lines .line:nth-last-child(3) { --age-tint: var(--ch-purple-dark); --age-mix: 32%; }
-  html[data-theme="light"] #lines .line:nth-last-child(4) { --age-tint: #7A2752;               --age-mix: 28%; }
-
-  /* Linha atual: gradient mais intenso + glow verde (preserva o "ao vivo") */
   .line.current {
-    filter: drop-shadow(0 0 12px rgba(50, 250, 150, 0.18));
+    filter: drop-shadow(0 0 12px rgba(50, 250, 150, 0.16));
   }
 
   /* ---------- Crossfade por idade ----------
