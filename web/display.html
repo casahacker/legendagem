@@ -148,6 +148,38 @@
     /* drop-shadow no lugar de text-shadow porque cor é transparente */
     filter: drop-shadow(0 0 12px rgba(50, 250, 150, 0.18));
   }
+
+  /* ---------- Crossfade por idade ----------
+     Cada linha mais antiga recebe um fade vertical próprio (top desaparece
+     antes do bottom) + opacidade global decrescente. :nth-last-child resolve
+     sem JS. */
+  #lines .line {
+    transition: opacity .45s ease, -webkit-mask-image .45s ease, mask-image .45s ease;
+  }
+  /* mais recente: sem máscara, opacidade total */
+  #lines .line:nth-last-child(1) {
+    opacity: 1;
+  }
+  #lines .line:nth-last-child(2) {
+    opacity: 0.78;
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.78) 0%, #000 100%);
+            mask-image: linear-gradient(180deg, rgba(0,0,0,.78) 0%, #000 100%);
+  }
+  #lines .line:nth-last-child(3) {
+    opacity: 0.55;
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.95) 100%);
+            mask-image: linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,.95) 100%);
+  }
+  #lines .line:nth-last-child(4) {
+    opacity: 0.32;
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.75) 100%);
+            mask-image: linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.75) 100%);
+  }
+  #lines .line:nth-last-child(n+5) {
+    opacity: 0.15;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.4) 100%);
+            mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.4) 100%);
+  }
   /* ---------- Animações de entrada/saída ---------- */
   .line.enter {
     animation: line-enter .42s cubic-bezier(.2,.7,.2,1) both;
@@ -284,37 +316,25 @@
     font-size: 0.9em;
   }
 
-  /* ---------- Soundwave / equalizer ---------- */
-  #wave {
-    position: fixed;
-    left: 0; right: 0;
-    bottom: 64px;
-    height: 48px;
-    display: flex; align-items: center; justify-content: center;
-    gap: 3px;
-    padding: 0 4vw;
+  /* ---------- Beat detection: vignette pulsante nas bordas ---------- */
+  /* body::after vira um halo radial discreto que pulsa quando há pico de áudio */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
     pointer-events: none;
-    opacity: 0;
-    transition: opacity .35s ease;
-    z-index: 5;
-    /* máscara nas pontas pra fade lateral */
-    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
-            mask-image: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+    z-index: 1;
+    box-shadow: inset 0 0 0 rgba(50, 250, 150, 0);
+    transition: box-shadow .55s cubic-bezier(.3,.1,.4,1);
   }
-  body.streaming #wave { opacity: 1; }
-  #wave .bar {
-    flex: 1 1 0;
-    max-width: 5px;
-    height: 100%;
-    background: linear-gradient(to top,
-        var(--stage-accent) 0%,
-        color-mix(in srgb, var(--stage-accent) 70%, transparent) 60%,
-        rgba(50, 250, 150, 0.18) 100%);
-    border-radius: 2px;
-    transform: scaleY(0.06);
-    transform-origin: center;
-    transition: transform 70ms ease-out;
-    will-change: transform;
+  body.beat::after {
+    /* punch in (rápido) → fade out (lento) — efeito de "batida" */
+    box-shadow: inset 0 0 180px rgba(50, 250, 150, 0.18),
+                inset 0 0 32px rgba(50, 250, 150, 0.10);
+    transition: box-shadow .08s ease-out;
+  }
+  html[data-theme="light"] body.beat::after {
+    box-shadow: inset 0 0 180px rgba(36, 199, 117, 0.22),
+                inset 0 0 32px rgba(36, 199, 117, 0.12);
   }
 
   /* ---------- Footer ---------- */
@@ -503,8 +523,6 @@
   <div class="cta">Pronto? Tecla <kbd>Espaço</kbd> ou clique em <span class="accent">Iniciar</span>.</div>
 </div>
 
-<!-- Equalizer reativo ao áudio do mic. Visível enquanto streaming. -->
-<div id="wave" aria-hidden="true"></div>
 
 <footer id="footer">
   <span class="brand" aria-label="Casa Hacker Legendagem">
@@ -565,17 +583,6 @@
   const $lines       = $("lines");
   const $buffer      = $("buffer");
   const $vuFill      = $("vu-fill");
-  const $wave        = $("wave");
-
-  /* ----- Soundwave bars ----- */
-  const N_BARS = 56;
-  const waveBars = [];
-  for (let i = 0; i < N_BARS; i++) {
-    const b = document.createElement("span");
-    b.className = "bar";
-    $wave.appendChild(b);
-    waveBars.push(b);
-  }
 
   const LS = {
     theme:     "legendagem.theme",
@@ -613,8 +620,17 @@
     $statusText.textContent = text;
   }
 
-  /* ----- VU meter + Soundwave (Web Audio AnalyserNode) ----- */
+  /* ----- VU meter + beat detection (Web Audio AnalyserNode) ----- */
   let audioCtx = null, vuRaf = null, vuStream = null;
+
+  // Beat detection: mantém média móvel do RMS e dispara .beat no body quando
+  // a energia atual ultrapassa o limiar relativo (sem ser muito frequente).
+  let rmsAvg = 0;                    // média exponencial (EMA)
+  let lastBeatAt = 0;
+  const BEAT_MIN_INTERVAL_MS = 280;  // anti-spam
+  const BEAT_THRESHOLD_RATIO = 1.6;  // pico precisa ser X% acima da média
+  const BEAT_MIN_RMS = 0.04;         // ignora ambiente silencioso
+  const EMA_ALPHA = 0.06;            // velocidade de adaptação da média
 
   async function startVuMeter() {
     try {
@@ -623,20 +639,14 @@
       });
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const src = audioCtx.createMediaStreamSource(vuStream);
-      // dois analyser pra usos distintos: VU (RMS) e wave (FFT)
       const vuAnalyser = audioCtx.createAnalyser();
       vuAnalyser.fftSize = 256;
       src.connect(vuAnalyser);
-      const fftAnalyser = audioCtx.createAnalyser();
-      fftAnalyser.fftSize = 512;       // 256 bins; usamos os 64 mais baixos (voz)
-      fftAnalyser.smoothingTimeConstant = 0.72;
-      src.connect(fftAnalyser);
-
       const timeData = new Uint8Array(vuAnalyser.frequencyBinCount);
-      const freqData = new Uint8Array(fftAnalyser.frequencyBinCount);
+
+      rmsAvg = 0; lastBeatAt = 0;
 
       const tick = () => {
-        // ---- VU (RMS) ----
         vuAnalyser.getByteTimeDomainData(timeData);
         let sum = 0;
         for (let i = 0; i < timeData.length; i++) {
@@ -646,32 +656,28 @@
         const rms = Math.sqrt(sum / timeData.length);
         $vuFill.style.width = Math.min(100, Math.round(rms * 250)) + "%";
 
-        // ---- Soundwave (FFT) ----
-        fftAnalyser.getByteFrequencyData(freqData);
-        // Pega bins 2..130 (faixa de voz humana ~80Hz-5kHz @ 48kHz sample) e bina em N_BARS
-        const startBin = 2, endBin = 130;
-        const span = endBin - startBin;
-        for (let i = 0; i < N_BARS; i++) {
-          const b0 = startBin + Math.floor(i * span / N_BARS);
-          const b1 = startBin + Math.floor((i + 1) * span / N_BARS);
-          let max = 0;
-          for (let k = b0; k < b1; k++) if (freqData[k] > max) max = freqData[k];
-          // normaliza 0..1 com piso pra evitar barras "mortas" (estética)
-          const norm = Math.max(0.04, Math.min(1, max / 200));
-          waveBars[i].style.transform = `scaleY(${norm})`;
+        // beat detect
+        rmsAvg = rmsAvg === 0 ? rms : (EMA_ALPHA * rms + (1 - EMA_ALPHA) * rmsAvg);
+        const now = performance.now();
+        if (rms > BEAT_MIN_RMS &&
+            rms > rmsAvg * BEAT_THRESHOLD_RATIO &&
+            now - lastBeatAt > BEAT_MIN_INTERVAL_MS) {
+          lastBeatAt = now;
+          document.body.classList.add("beat");
+          setTimeout(() => document.body.classList.remove("beat"), 80);
         }
 
         vuRaf = requestAnimationFrame(tick);
       };
       tick();
-    } catch (e) { console.warn("VU/wave falhou (sem permissão de mic):", e); }
+    } catch (e) { console.warn("VU falhou (sem permissão de mic):", e); }
   }
   function stopVuMeter() {
     if (vuRaf) cancelAnimationFrame(vuRaf);
     if (audioCtx) { try { audioCtx.close(); } catch (_) {} audioCtx = null; }
     if (vuStream) { vuStream.getTracks().forEach(t => t.stop()); vuStream = null; }
     $vuFill.style.width = "0%";
-    waveBars.forEach(b => b.style.transform = "scaleY(0.06)");
+    document.body.classList.remove("beat");
   }
 
   /* ----- Web Speech API ----- */
