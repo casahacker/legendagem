@@ -86,31 +86,111 @@
     transition: background-color .2s ease, color .2s ease;
   }
 
-  /* ---------- Stage (legendas) ---------- */
+  /* ---------- Stage (legendas) ----------
+     Layout teleprompter: linhas empilham de baixo pra cima.
+     Texto alinhado à esquerda. Novas linhas entram por baixo com slide+fade.
+     Linha mais recente recebe marcador verde (--ch-code) varrendo da esquerda. */
   #stage {
     position: absolute; inset: 0 0 88px 0;
     display: flex; flex-direction: column;
-    justify-content: center; align-items: center;
-    padding: 4vh 5vw;
-    text-align: center;
+    justify-content: flex-end;
+    padding: 6vh 6vw 3vh;
     pointer-events: none;
+    overflow: hidden;
   }
-  .caption {
-    margin: 0.5vh 0;
-    line-height: 1.22;
+  #lines {
+    display: flex; flex-direction: column;
+    gap: 1.5vh;
+    /* máscara: linhas no topo somem suavemente */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 18%, #000 100%);
+            mask-image: linear-gradient(to bottom, transparent 0%, #000 18%, #000 100%);
+  }
+  .line {
+    text-align: left;
+    line-height: 1.25;
     font-weight: 500;
     letter-spacing: -0.005em;
-    text-wrap: balance;
     word-break: break-word;
     font-variation-settings: "wdth" 100, "opsz" 144;
-    transition: opacity .25s ease, font-size .15s ease;
+    font-size: calc(clamp(3.8vw, 5.6vw, 7.6vw) * var(--font-scale));
+    color: var(--stage-fg);
+    margin: 0;
+    position: relative;
+    transform-origin: left bottom;
   }
-  .caption:empty { display: none; }
-  .caption.finalized       { color: var(--stage-fg); font-size: calc(clamp(4vw, 5.8vw, 8vw) * var(--font-scale)); }
-  .caption.finalized.prev  { color: var(--stage-fg); opacity: .55;
-                             font-size: calc(clamp(3.2vw, 4.6vw, 6.4vw) * var(--font-scale)); }
-  .caption.buffer          { color: var(--stage-buffer); font-weight: 400;
-                             font-size: calc(clamp(3.5vw, 5vw, 7vw) * var(--font-scale)); }
+  /* ---------- Animações de entrada/saída ---------- */
+  .line.enter {
+    animation: line-enter .42s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .line.leave {
+    animation: line-leave .35s ease-in forwards;
+  }
+  @keyframes line-enter {
+    from { opacity: 0; transform: translateY(28px) scale(.985); filter: blur(2px); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);     filter: blur(0); }
+  }
+  @keyframes line-leave {
+    to { opacity: 0; transform: translateY(-12px); }
+  }
+
+  /* ---------- Marcador verde varrendo embaixo da linha recente ---------- */
+  .line.current::after {
+    content: '';
+    position: absolute;
+    left: 0; bottom: -6px;
+    height: 4px;
+    width: 100%;
+    background: linear-gradient(90deg,
+        var(--stage-accent) 0%,
+        var(--stage-accent) 70%,
+        rgba(50, 250, 150, 0) 100%);
+    border-radius: 2px;
+    transform-origin: left;
+    transform: scaleX(0);
+    animation: marker-sweep .9s cubic-bezier(.2,.7,.2,1) forwards;
+    box-shadow: 0 0 12px rgba(50, 250, 150, 0.35);
+  }
+  @keyframes marker-sweep {
+    0%   { transform: scaleX(0); opacity: 1; }
+    70%  { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(1); opacity: .35; }
+  }
+
+  /* Halo sutil só na linha recente */
+  .line.current {
+    text-shadow: 0 0 24px rgba(50, 250, 150, 0.08);
+  }
+
+  /* ---------- Buffer (texto em construção, com cursor piscante) ---------- */
+  #buffer {
+    text-align: left;
+    line-height: 1.25;
+    font-weight: 400;
+    letter-spacing: -0.005em;
+    font-variation-settings: "wdth" 100, "opsz" 144;
+    font-size: calc(clamp(3.6vw, 5.2vw, 7vw) * var(--font-scale));
+    color: var(--stage-buffer);
+    margin-top: 2vh;
+    min-height: 1.25em;
+    word-break: break-word;
+    position: relative;
+  }
+  #buffer:empty::before {
+    /* placeholder discreto enquanto não há buffer */
+    content: '';
+  }
+  /* Cursor piscante quando há áudio ativo (mesmo sem texto interim ainda) */
+  body.streaming #buffer::after {
+    content: '▍';
+    color: var(--stage-accent);
+    margin-left: 2px;
+    animation: cursor-blink 1.05s steps(2, end) infinite;
+    font-weight: 400;
+    opacity: .75;
+  }
+  @keyframes cursor-blink {
+    50% { opacity: 0; }
+  }
 
   /* ---------- Hint inicial ---------- */
   #hint {
@@ -268,9 +348,8 @@
 </div>
 
 <main id="stage" aria-live="polite" aria-atomic="false">
-  <div id="line-prev"   class="caption finalized prev"></div>
-  <div id="line-curr"   class="caption finalized"></div>
-  <div id="line-buffer" class="caption buffer"></div>
+  <div id="lines"></div>
+  <div id="buffer"></div>
 </main>
 
 <div id="hint" aria-hidden="true">
@@ -334,9 +413,8 @@
   const $btnFontDown = $("btn-font-down");
   const $status      = $("status");
   const $statusText  = $("status-text");
-  const $linePrev    = $("line-prev");
-  const $lineCurr    = $("line-curr");
-  const $lineBuf     = $("line-buffer");
+  const $lines       = $("lines");
+  const $buffer      = $("buffer");
   const $vuFill      = $("vu-fill");
 
   const LS = {
@@ -414,22 +492,56 @@
   let recognition = null;
   let recognizing = false;
   let userStop = false;       // sinaliza parada solicitada (impede auto-restart)
-  let history = [];           // últimas 2 frases finalizadas
   let interim  = "";          // frase atual em construção
 
-  function render() {
-    const last2 = history.slice(-2);
-    $linePrev.textContent = last2.length === 2 ? last2[0] : "";
-    $lineCurr.textContent = last2.length >= 1 ? last2[last2.length - 1] : "";
-    $lineBuf .textContent = interim;
+  // Máximo de linhas finalizadas visíveis. Linhas mais antigas saem pelo topo.
+  const MAX_LINES = 5;
+
+  function pushLine(text) {
+    if (!text) return;
+    // Remove "current" da linha anterior (mantém o marcador, mas para nova animação)
+    const prev = $lines.querySelector(".line.current");
+    if (prev) prev.classList.remove("current");
+
+    const el = document.createElement("div");
+    el.className = "line current enter";
+    el.textContent = text;
+    $lines.appendChild(el);
+
+    // Remove a classe 'enter' depois da animação para liberar o estado normal
+    el.addEventListener("animationend", function once(ev) {
+      if (ev.animationName === "line-enter") {
+        el.classList.remove("enter");
+        el.removeEventListener("animationend", once);
+      }
+    });
+
+    // Mantém no máximo MAX_LINES linhas — anima saída das antigas pelo topo
+    while ($lines.children.length > MAX_LINES) {
+      const oldest = $lines.firstElementChild;
+      oldest.classList.add("leave");
+      oldest.addEventListener("animationend", () => oldest.remove(), { once: true });
+      // garantia: remove após 600ms caso animationend não dispare
+      setTimeout(() => { if (oldest.parentNode) oldest.remove(); }, 600);
+      // Se ainda assim sobram crianças além do limite (durante leave), quebra
+      if (oldest.classList.contains("leave")) break;
+    }
+  }
+
+  function setBuffer(text) {
+    $buffer.textContent = text || "";
+  }
+
+  function clearAll() {
+    $lines.innerHTML = "";
+    setBuffer("");
   }
 
   async function start() {
     if (!SpeechRecognition) return;
     userStop = false;
-    history = [];
     interim = "";
-    render();
+    clearAll();
     setStatus("starting", "iniciando…");
     $btnToggle.disabled = true;
 
@@ -458,13 +570,20 @@
         if (ev.results[i].isFinal) finalText += t;
         else interimText += t;
       }
-      if (finalText.trim()) {
-        history.push(finalText.trim());
-        // mantém o tamanho controlado (só precisamos das 2 últimas — guardamos 8 por segurança)
-        if (history.length > 8) history = history.slice(-8);
+      finalText = finalText.trim();
+      interimText = interimText.trim();
+
+      if (finalText) {
+        // Divide em frases pra cada uma virar uma linha visual
+        // (corta em ".", "!", "?" mantendo pontuação)
+        const sentences = finalText
+          .split(/(?<=[.!?])\s+/)
+          .map(s => s.trim())
+          .filter(Boolean);
+        sentences.forEach(pushLine);
       }
-      interim = interimText.trim();
-      render();
+      interim = interimText;
+      setBuffer(interim);
     };
 
     recognition.onerror = (ev) => {
