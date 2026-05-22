@@ -124,28 +124,37 @@
     position: relative;
     transform-origin: left bottom;
   }
-  /* Gradient text: tons sutis brand-aware, gradiente vertical de fg → accent */
+  /* ---------- Gradient text envelhecendo pelo espectro Casa Hacker ----------
+     Cada posição no stack puxa o gradiente do texto para uma cor diferente da
+     paleta (recente=verde, 1 atrás=azul, 2=roxo, 3=pink, 4+=gray). Em ambos os
+     temas. Marker e glow continuam só na linha atual em verde. */
   .line {
+    --age-tint: var(--stage-fg);
+    --age-mix: 25%;     /* intensidade do tint no rodapé do glyph */
     background: linear-gradient(180deg,
         var(--stage-fg) 0%,
-        var(--stage-fg) 55%,
-        color-mix(in srgb, var(--stage-fg) 70%, var(--stage-accent) 30%) 100%);
+        var(--stage-fg) 50%,
+        color-mix(in srgb, var(--stage-fg) calc(100% - var(--age-mix)), var(--age-tint) var(--age-mix)) 100%);
     -webkit-background-clip: text;
             background-clip: text;
     -webkit-text-fill-color: transparent;
             color: transparent;
   }
-  /* Linha atual tem gradient mais intenso pra destacar */
+
+  /* Dark theme: usa cores brilhantes */
+  html[data-theme="dark"] #lines .line:nth-last-child(1) { --age-tint: var(--ch-code);         --age-mix: 55%; }
+  html[data-theme="dark"] #lines .line:nth-last-child(2) { --age-tint: var(--ch-sec-b);        --age-mix: 32%; }
+  html[data-theme="dark"] #lines .line:nth-last-child(3) { --age-tint: var(--ch-purple-light); --age-mix: 28%; }
+  html[data-theme="dark"] #lines .line:nth-last-child(4) { --age-tint: var(--ch-sec-r);        --age-mix: 24%; }
+
+  /* Light theme: usa as cores -fg (mais escuras) pra preservar contraste em bg claro */
+  html[data-theme="light"] #lines .line:nth-last-child(1) { --age-tint: var(--ch-code-active); --age-mix: 60%; }
+  html[data-theme="light"] #lines .line:nth-last-child(2) { --age-tint: #0E3A6B;               --age-mix: 38%; }
+  html[data-theme="light"] #lines .line:nth-last-child(3) { --age-tint: var(--ch-purple-dark); --age-mix: 32%; }
+  html[data-theme="light"] #lines .line:nth-last-child(4) { --age-tint: #7A2752;               --age-mix: 28%; }
+
+  /* Linha atual: gradient mais intenso + glow verde (preserva o "ao vivo") */
   .line.current {
-    background: linear-gradient(180deg,
-        var(--stage-fg) 0%,
-        color-mix(in srgb, var(--stage-fg) 85%, var(--stage-accent) 15%) 55%,
-        var(--stage-accent) 100%);
-    -webkit-background-clip: text;
-            background-clip: text;
-    -webkit-text-fill-color: transparent;
-            color: transparent;
-    /* drop-shadow no lugar de text-shadow porque cor é transparente */
     filter: drop-shadow(0 0 12px rgba(50, 250, 150, 0.18));
   }
 
@@ -275,7 +284,15 @@
     text-transform: uppercase;
     letter-spacing: 0.32em;
     margin-top: -2vh;
+    display: inline-flex; align-items: center; gap: 4px;
   }
+  #hint .tagline .dot { font-size: 0.85em; line-height: 1; }
+  #hint .tagline .dot-1 { color: var(--ch-code); }
+  #hint .tagline .dot-2 { color: var(--ch-sec-b); margin-left: -2px; }
+  #hint .tagline .dot-3 { color: var(--ch-purple); margin-left: -2px; margin-right: 8px; }
+  html[data-theme="light"] #hint .tagline .dot-1 { color: var(--ch-code-active); }
+  html[data-theme="light"] #hint .tagline .dot-2 { color: #0E3A6B; }
+  html[data-theme="light"] #hint .tagline .dot-3 { color: var(--ch-purple-dark); }
   #hint .accent { color: var(--stage-accent); }
   #hint .steps {
     display: flex; flex-direction: column; gap: 1vh;
@@ -299,6 +316,13 @@
     border-radius: 50%;
     font-size: 0.85em;
   }
+  /* Cores diferentes pra cada step: green → blue → purple */
+  #hint .steps .step:nth-child(1) .num { background: var(--ch-code);  color: var(--ch-dos); }
+  #hint .steps .step:nth-child(2) .num { background: var(--ch-sec-b); color: #0E3A6B; }
+  #hint .steps .step:nth-child(3) .num { background: var(--ch-purple); color: #FFFFFF; }
+  html[data-theme="light"] #hint .steps .step:nth-child(1) .num { background: var(--ch-code-active);  color: #FFFFFF; }
+  html[data-theme="light"] #hint .steps .step:nth-child(2) .num { background: #0E3A6B;               color: #FFFFFF; }
+  html[data-theme="light"] #hint .steps .step:nth-child(3) .num { background: var(--ch-purple-dark); color: #FFFFFF; }
   #hint .steps strong { color: var(--stage-fg); font-weight: 500; }
   #hint .cta {
     margin-top: 1vh;
@@ -428,20 +452,15 @@
   #status.error .dot { background: var(--error); box-shadow: 0 0 8px var(--error); }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-  /* ---------- VU meter ---------- */
-  #vu {
-    display: inline-block;
-    width: 60px; height: 8px;
-    background: var(--chrome-field-bg);
-    border: 1px solid var(--chrome-field-bd);
-    overflow: hidden;
+  /* ---------- Typography toggle ----------
+     Body class .font-mono troca a fonte das captions/UI principal.
+     Footer/labels permanecem em IBM Plex Mono pra preservar hierarquia. */
+  body.font-mono {
+    --font-display: 'IBM Plex Mono', ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
   }
-  #vu-fill {
-    display: block;
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--stage-accent), var(--ch-script) 75%, var(--error));
-    transition: width 80ms linear;
+  #btn-typeface .face {
+    font-family: var(--font-display);
+    font-weight: 600;
   }
 
   /* ---------- Banner de browser incompatível ---------- */
@@ -503,7 +522,12 @@
       <path d="M543.79,12.45c-2.2-3.92-5.48-7.13-9.46-9.23-4.03-2.14-8.72-3.22-13.94-3.22s-10.02,1.12-14.08,3.32c-4.01,2.16-7.31,5.43-9.51,9.41-2.27,4.05-3.41,8.92-3.41,14.46s1.16,10.42,3.46,14.5c2.21,4,5.53,7.29,9.56,9.46,4.05,2.2,8.76,3.32,13.98,3.32,4.34,0,8.36-.83,11.94-2.46,3.58-1.63,6.59-3.91,8.95-6.77,2.27-2.75,3.88-5.98,4.7-9.45h-19.48c-1.39,2.79-3.7,4.21-6.86,4.21-2.3,0-4.22-.75-5.7-2.23s-2.33-3.74-2.52-6.73l-.02-.29h35.55c.17-1.37.25-2.75.25-4.13,0-5.41-1.15-10.18-3.42-14.17ZM528.61,22.21h-17.16l.06-.33c.46-2.48,1.45-4.38,2.96-5.66s3.47-1.93,5.82-1.93,4.34.68,5.92,2.03c1.58,1.35,2.39,3.25,2.39,5.62v.28Z"/>
     </svg>
   </span>
-  <div class="tagline"><span class="accent">●</span> Legendagem ao vivo</div>
+  <div class="tagline">
+    <span class="dot dot-1">●</span>
+    <span class="dot dot-2">●</span>
+    <span class="dot dot-3">●</span>
+    Legendagem ao vivo
+  </div>
 
   <div class="steps">
     <div class="step">
@@ -549,6 +573,9 @@
   <span class="grow"></span>
 
   <span class="ctrl">
+    <button class="btn" id="btn-typeface" title="Alternar tipografia (Y)" aria-label="Alternar tipografia">
+      <span class="face">Aa</span>
+    </button>
     <span class="group" role="group" aria-label="Tamanho do texto">
       <button class="btn" id="btn-font-down" title="Diminuir texto (-)">A-</button>
       <button class="btn" id="btn-font-up"   title="Aumentar texto (+)">A+</button>
@@ -563,7 +590,6 @@
     <span id="status-text">parado</span>
   </span>
 
-  <span id="vu" title="Nível do microfone" aria-hidden="true"><span id="vu-fill"></span></span>
 </footer>
 
 <script>
@@ -582,11 +608,12 @@
   const $stage       = $("stage");
   const $lines       = $("lines");
   const $buffer      = $("buffer");
-  const $vuFill      = $("vu-fill");
+  const $btnTypeface = $("btn-typeface");
 
   const LS = {
     theme:     "legendagem.theme",
     fontScale: "legendagem.fontScale",
+    typeface:  "legendagem.typeface",
   };
 
   /* ----- Tema ----- */
@@ -606,6 +633,15 @@
     localStorage.setItem(LS.fontScale, String(fontScale));
   };
   applyFontScale();
+
+  /* ----- Typeface toggle (Roboto Flex ↔ IBM Plex Mono) ----- */
+  function applyTypeface(t) {
+    document.body.classList.toggle("font-mono", t === "mono");
+    localStorage.setItem(LS.typeface, t);
+    $btnTypeface.setAttribute("aria-pressed", t === "mono" ? "true" : "false");
+    $btnTypeface.title = "Tipografia: " + (t === "mono" ? "IBM Plex Mono" : "Roboto Flex") + " (Y)";
+  }
+  applyTypeface(localStorage.getItem(LS.typeface) || "sans");
 
   /* ----- Suporte do browser ----- */
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -654,7 +690,6 @@
           sum += v * v;
         }
         const rms = Math.sqrt(sum / timeData.length);
-        $vuFill.style.width = Math.min(100, Math.round(rms * 250)) + "%";
 
         // beat detect
         rmsAvg = rmsAvg === 0 ? rms : (EMA_ALPHA * rms + (1 - EMA_ALPHA) * rmsAvg);
@@ -676,7 +711,6 @@
     if (vuRaf) cancelAnimationFrame(vuRaf);
     if (audioCtx) { try { audioCtx.close(); } catch (_) {} audioCtx = null; }
     if (vuStream) { vuStream.getTracks().forEach(t => t.stop()); vuStream = null; }
-    $vuFill.style.width = "0%";
     document.body.classList.remove("beat");
   }
 
@@ -852,6 +886,10 @@
     const cur = document.documentElement.getAttribute("data-theme");
     applyTheme(cur === "dark" ? "light" : "dark");
   });
+  $btnTypeface.addEventListener("click", () => {
+    const cur = localStorage.getItem(LS.typeface) || "sans";
+    applyTypeface(cur === "mono" ? "sans" : "mono");
+  });
   $btnFontUp.addEventListener("click", () => {
     fontScale = Math.min(1.8, +(fontScale + 0.1).toFixed(2)); applyFontScale();
   });
@@ -864,6 +902,7 @@
     const k = e.key.toLowerCase();
     if (k === "f") toggleFullscreen();
     else if (k === "t") $btnTheme.click();
+    else if (k === "y") $btnTypeface.click();
     else if (k === "+" || (e.key === "=" && !e.shiftKey)) $btnFontUp.click();
     else if (k === "-") $btnFontDown.click();
     else if (e.key === "Escape" && document.fullscreenElement) document.exitFullscreen();
